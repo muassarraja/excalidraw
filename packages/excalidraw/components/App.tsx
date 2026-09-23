@@ -150,6 +150,7 @@ import {
   isIframeElement,
   isIframeLikeElement,
   isMagicFrameElement,
+  isFlowchartNodeElement,
   isTextBindableContainer,
   isElbowArrow,
   isBindableElement,
@@ -422,6 +423,7 @@ import {
   getViewportForZoomWithScrollConstraints,
 } from "../viewport";
 import { ElementCanvasButtons } from "../components/ElementCanvasButtons";
+import { FlowchartCreationButtons } from "../components/FlowchartCreationButtons";
 import { LaserTrails } from "../laserTrails";
 import { withBatchedUpdates, withBatchedUpdatesThrottled } from "../reactUtils";
 import { isPointHittingTextAutoResizeHandle } from "../textAutoResizeHandle";
@@ -2626,6 +2628,22 @@ class App extends React.Component<AppProps, AppState> {
                                   }}
                                 />
                               </ElementCanvasButtons>
+                            )}
+                          {this.isDefaultUIEnabled() &&
+                            selectedElements.length === 1 &&
+                            isFlowchartNodeElement(firstSelectedElement) &&
+                            (firstSelectedElement.type === "rectangle" ||
+                              firstSelectedElement.type === "diamond") && (
+                              <FlowchartCreationButtons
+                                element={firstSelectedElement}
+                                elementsMap={renderableElementsMap}
+                                onCreateNode={(direction) =>
+                                  this.flowchart.createNodeInDirection(
+                                    firstSelectedElement,
+                                    direction,
+                                  )
+                                }
+                              />
                             )}
 
                           {this.isDefaultUIEnabled() && this.state.contextMenu && (

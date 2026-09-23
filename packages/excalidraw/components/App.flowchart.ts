@@ -50,6 +50,32 @@ export class AppFlowchart {
     this.navigator.clear();
   };
 
+  createNodeInDirection = (
+    startNode: NonDeletedExcalidrawElement,
+    direction: LinkDirection,
+  ) => {
+    if (!isFlowchartNodeElement(startNode)) {
+      return;
+    }
+
+    this.creator.createNodes(
+      startNode,
+      this.app.state,
+      direction,
+      this.app.scene,
+    );
+    const nodes = this.creator.pendingNodes ?? [];
+    this.creator.clear();
+
+    if (!nodes.length) {
+      return;
+    }
+
+    this.app.insertNewElements(nodes);
+    this.selectAndReveal(nodes[0]);
+    this.captureUpdate();
+  };
+
   handleKeyEvent = (event: React.KeyboardEvent | KeyboardEvent): boolean => {
     const operation = this.resolveKeyboardEventToOperation(event);
 

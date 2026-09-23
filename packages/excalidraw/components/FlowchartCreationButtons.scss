@@ -1,0 +1,20 @@
+.excalidraw {
+  .flowchart-creation-buttons {
+    position: absolute;
+    inset: 0;
+    z-index: var(--zIndex-canvasButtons);
+    pointer-events: none;
+
+    &__button {
+      position: absolute;
+      pointer-events: auto;
+      border-radius: var(--border-radius-lg);
+      background: var(--island-bg-color);
+      box-shadow: 0 2px 4px 0 rgb(0 0 0 / 30%);
+    }
+
+    .ToolIcon__MagicButton {
+      display: flex;
+    }
+  }
+}
