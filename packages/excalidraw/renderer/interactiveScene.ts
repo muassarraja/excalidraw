@@ -37,6 +37,7 @@ import {
   isBindableElement,
   isElbowArrow,
   isFrameLikeElement,
+  isFlowchartNodeElement,
   isImageElement,
   isLinearElement,
   isLineElement,
@@ -1423,6 +1424,7 @@ const renderTransformHandles = (
   appState: InteractiveCanvasAppState,
   transformHandles: TransformHandles,
   angle: number,
+  flowchartNode = false,
 ): void => {
   Object.keys(transformHandles).forEach((key) => {
     const transformHandle = transformHandles[key as TransformHandleType];
@@ -1454,6 +1456,40 @@ const renderTransformHandles = (
           angle,
           true, // fill before stroke
         );
+      }
+      if (
+        flowchartNode &&
+        (key === "n" || key === "e" || key === "s" || key === "w")
+      ) {
+        const centerX = x + width / 2;
+        const centerY = y + height / 2;
+        const length = Math.max(width, height) * 0.28;
+        const direction =
+          key === "n"
+            ? [0, -1]
+            : key === "e"
+            ? [1, 0]
+            : key === "s"
+            ? [0, 1]
+            : [-1, 0];
+        const tipX = centerX + direction[0] * length;
+        const tipY = centerY + direction[1] * length;
+        const tailX = centerX - direction[0] * length;
+        const tailY = centerY - direction[1] * length;
+        const wing = length * 0.65;
+        context.beginPath();
+        context.moveTo(tailX, tailY);
+        context.lineTo(tipX, tipY);
+        context.moveTo(
+          tipX - (direction[0] * wing - direction[1] * wing),
+          tipY - (direction[1] * wing + direction[0] * wing),
+        );
+        context.lineTo(tipX, tipY);
+        context.lineTo(
+          tipX - (direction[0] * wing + direction[1] * wing),
+          tipY - (direction[1] * wing - direction[0] * wing),
+        );
+        context.stroke();
       }
       context.restore();
     }
@@ -2008,6 +2044,7 @@ const _renderInteractiveScene = ({
           appState,
           transformHandles,
           selectedElements[0].angle,
+          isFlowchartNodeElement(selectedElements[0]),
         );
       }
 

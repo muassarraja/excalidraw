@@ -28,6 +28,8 @@ import type {
   ExcalidrawElbowArrowElement,
   ExcalidrawLineElement,
   ExcalidrawFlowchartNodeElement,
+  ExcalidrawRectangleElement,
+  ExcalidrawDiamondElement,
   ExcalidrawLinearElementSubType,
   ExcalidrawStickyNoteElement,
 } from "./types";
@@ -292,6 +294,12 @@ export const isFlowchartNodeElement = <T extends ExcalidrawElement>(
     element.type === "ellipse" ||
     element.type === "diamond"
   );
+};
+
+export const isDirectionalFlowchartNodeElement = <T extends ExcalidrawElement>(
+  element: T,
+): element is T & (ExcalidrawRectangleElement | ExcalidrawDiamondElement) => {
+  return element.type === "rectangle" || element.type === "diamond";
 };
 
 export const hasBoundTextElement = <T extends ExcalidrawElement>(

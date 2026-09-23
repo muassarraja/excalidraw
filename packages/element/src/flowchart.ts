@@ -110,8 +110,9 @@ const findNearestFreeSlot = (
 };
 
 // Walk the arrow bindings to collect every node that belongs to the same
-// flowchart as `node` — the whole connected component acts as the obstacle
-// set during placement (#8518).
+// flowchart as `node`, then include disconnected flowchart nodes as
+// obstacles too. A nearby node must not be overlapped just because it belongs
+// to another component.
 const getConnectedFlowchartNodes = (
   node: ExcalidrawBindableElement,
   elementsMap: ElementsMap,
@@ -144,6 +145,16 @@ const getConnectedFlowchartNodes = (
         connected.push(neighbor);
         queue.push(neighborId);
       }
+    }
+  }
+
+  for (const element of elementsMap.values()) {
+    if (
+      isFlowchartNodeElement(element) &&
+      element.id !== node.id &&
+      !visited.has(element.id)
+    ) {
+      connected.push(element);
     }
   }
 
@@ -276,19 +287,43 @@ export const addNewNodes = (
   scene: Scene,
   numberOfNodes: number,
   stickyCrossStart: number | null = null,
+  preferredPosition: { x: number; y: number } | null = null,
 ) => {
   const elementsMap = scene.getNonDeletedElementsMap();
   const obstacles = getConnectedFlowchartNodes(startNode, elementsMap).map(
     (node) => aabbForElement(node, elementsMap),
   );
 
-  const { positions, crossStart } = placeCluster(
+  let { positions, crossStart } = placeCluster(
     startNode,
     direction,
     numberOfNodes,
     obstacles,
     stickyCrossStart,
   );
+
+  if (preferredPosition && numberOfNodes === 1) {
+    const preferredBounds: Bounds = [
+      preferredPosition.x,
+      preferredPosition.y,
+      preferredPosition.x + startNode.width,
+      preferredPosition.y + startNode.height,
+    ];
+    const startBounds = aabbForElement(startNode, elementsMap);
+    const overlaps = (a: Bounds, b: Bounds) =>
+      a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1];
+
+    if (
+      !overlaps(preferredBounds, startBounds) &&
+      obstacles.every((obstacle) => !overlaps(preferredBounds, obstacle))
+    ) {
+      positions = [preferredPosition];
+      crossStart =
+        direction === "left" || direction === "right"
+          ? preferredPosition.y
+          : preferredPosition.x;
+    }
+  }
 
   const nodes: NonDeletedExcalidrawElement[] = [];
   for (const position of positions) {
@@ -685,6 +720,7 @@ export class FlowChartCreator {
     appState: AppState,
     direction: LinkDirection,
     scene: Scene,
+    preferredPosition: { x: number; y: number } | null = null,
   ) {
     const elementsMap = scene.getNonDeletedElementsMap();
 
@@ -702,6 +738,7 @@ export class FlowChartCreator {
       scene,
       this.numberOfNodes,
       this.clusterCrossStart,
+      preferredPosition,
     );
 
     this.isCreatingChart = true;

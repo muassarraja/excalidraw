@@ -17,6 +17,7 @@ import { getElementAbsoluteCoords } from "./bounds";
 import {
   isElbowArrow,
   isFrameLikeElement,
+  isDirectionalFlowchartNodeElement,
   isImageElement,
   isLinearElement,
 } from "./typeChecks";
@@ -307,6 +308,15 @@ export const getTransformHandles = (
     omitSides = {
       ...omitSides,
       rotation: true,
+    };
+  }
+  if (isDirectionalFlowchartNodeElement(element)) {
+    omitSides = {
+      ...omitSides,
+      e: false,
+      s: false,
+      n: false,
+      w: false,
     };
   }
   const margin = isLinearElement(element)

@@ -140,6 +140,7 @@ import {
   isBindingElement,
   isBindingElementType,
   isBoundToContainer,
+  isDirectionalFlowchartNodeElement,
   isFrameLikeElement,
   isImageElement,
   isEmbeddableElement,
@@ -9246,6 +9247,7 @@ class App extends React.Component<AppProps, AppState> {
         arrowDirection: "origin",
         center: { x: (maxX + minX) / 2, y: (maxY + minY) / 2 },
       },
+      flowchart: { handle: false },
       hit: {
         element: null,
         allHitElements: [],
@@ -9366,23 +9368,37 @@ class App extends React.Component<AppProps, AppState> {
             this.editorInterface,
           );
         if (elementWithTransformHandleType != null) {
+          const transformHandleType =
+            elementWithTransformHandleType.transformHandleType;
           if (
-            elementWithTransformHandleType.transformHandleType === "rotation"
+            selectedElements.length === 1 &&
+            isDirectionalFlowchartNodeElement(selectedElements[0]) &&
+            !this.state.croppingElementId &&
+            (transformHandleType === "n" ||
+              transformHandleType === "e" ||
+              transformHandleType === "s" ||
+              transformHandleType === "w")
           ) {
+            this.flowchart.startHandleDrag(
+              selectedElements[0],
+              pointerDownState.origin,
+              AppFlowchart.getLinkDirectionFromTransformHandle(
+                transformHandleType,
+              ),
+            );
+            pointerDownState.flowchart.handle = true;
+          } else if (transformHandleType === "rotation") {
             this.setState({
               resizingElement: elementWithTransformHandleType.element,
             });
-            pointerDownState.resize.handleType =
-              elementWithTransformHandleType.transformHandleType;
+            pointerDownState.resize.handleType = transformHandleType;
           } else if (this.state.croppingElementId) {
-            pointerDownState.resize.handleType =
-              elementWithTransformHandleType.transformHandleType;
+            pointerDownState.resize.handleType = transformHandleType;
           } else {
             this.setState({
               resizingElement: elementWithTransformHandleType.element,
             });
-            pointerDownState.resize.handleType =
-              elementWithTransformHandleType.transformHandleType;
+            pointerDownState.resize.handleType = transformHandleType;
           }
         }
       } else if (selectedElements.length > 1) {
@@ -10723,6 +10739,12 @@ class App extends React.Component<AppProps, AppState> {
           return true;
         }
       }
+      if (pointerDownState.flowchart.handle) {
+        this.flowchart.handlePointerMove(pointerCoords);
+        pointerDownState.lastCoords.x = pointerCoords.x;
+        pointerDownState.lastCoords.y = pointerCoords.y;
+        return;
+      }
       const elementsMap = this.scene.getNonDeletedElementsMap();
 
       if (this.state.selectedLinearElement) {
@@ -11466,6 +11488,38 @@ class App extends React.Component<AppProps, AppState> {
         { clientX: childEvent.clientX, clientY: childEvent.clientY },
         this.state,
       );
+
+      if (pointerDownState.flowchart.handle) {
+        if (childEvent.type === "pointerup") {
+          this.flowchart.commitHandleDrag();
+        } else {
+          this.flowchart.cancelHandleDrag();
+        }
+        this.missingPointerEventCleanupEmitter.clear();
+        this.ownerWindow.removeEventListener(
+          EVENT.POINTER_MOVE,
+          pointerDownState.eventListeners.onMove!,
+        );
+        this.ownerWindow.removeEventListener(
+          EVENT.POINTER_UP,
+          pointerDownState.eventListeners.onUp!,
+        );
+        this.ownerWindow.removeEventListener(
+          EVENT.KEYDOWN,
+          pointerDownState.eventListeners.onKeyDown!,
+        );
+        this.ownerWindow.removeEventListener(
+          EVENT.KEYUP,
+          pointerDownState.eventListeners.onKeyUp!,
+        );
+        this.props?.onPointerUp?.(activeTool, pointerDownState);
+        this.onPointerUpEmitter.trigger(
+          this.state.activeTool,
+          pointerDownState,
+          childEvent,
+        );
+        return;
+      }
 
       if (
         this.state.activeTool.type === "selection" &&

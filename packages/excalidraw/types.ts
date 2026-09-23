@@ -1255,6 +1255,9 @@ export type PointerDownState = Readonly<{
     // This is a center point of selected elements determined on the initial pointer down event (for rotation only)
     center: { x: number; y: number };
   };
+  flowchart: {
+    handle: boolean;
+  };
   hit: {
     // The element the pointer is "hitting", is determined on the initial
     // pointer down event

@@ -33,6 +33,11 @@ type FlowchartOperation =
 export class AppFlowchart {
   private creator = new FlowChartCreator();
   private navigator = new FlowChartNavigator();
+  private handleDrag: {
+    nodeId: ExcalidrawElement["id"];
+    origin: { x: number; y: number };
+    direction: LinkDirection;
+  } | null = null;
 
   constructor(private app: App) {}
 
@@ -44,10 +49,102 @@ export class AppFlowchart {
     return this.creator.isCreatingChart;
   }
 
+  get isDraggingHandle() {
+    return this.handleDrag !== null;
+  }
+
   /** ends any in-progress flowchart creation/navigation session */
   clear = () => {
     this.creator.clear();
     this.navigator.clear();
+    this.handleDrag = null;
+  };
+
+  startHandleDrag = (
+    node: ExcalidrawElement,
+    origin: { x: number; y: number },
+    direction: LinkDirection,
+  ) => {
+    this.creator.clear();
+    this.handleDrag = {
+      nodeId: node.id,
+      origin,
+      direction,
+    };
+  };
+
+  handlePointerMove = (pointer: { x: number; y: number }) => {
+    if (!this.handleDrag) {
+      return false;
+    }
+
+    const { nodeId, origin, direction } = this.handleDrag;
+    const deltaX = pointer.x - origin.x;
+    const deltaY = pointer.y - origin.y;
+    const distance =
+      direction === "left"
+        ? -deltaX
+        : direction === "right"
+        ? deltaX
+        : direction === "up"
+        ? -deltaY
+        : deltaY;
+
+    if (distance < 16) {
+      if (this.creator.isCreatingChart) {
+        this.creator.clear();
+        this.app.triggerRender(true);
+      }
+      return true;
+    }
+
+    const node = this.app.scene.getNonDeletedElementsMap().get(nodeId);
+
+    if (!node || !isFlowchartNodeElement(node)) {
+      this.cancelHandleDrag();
+      return true;
+    }
+
+    this.creator.clear();
+    this.creator.createNodes(node, this.app.state, direction, this.app.scene, {
+      x: pointer.x - node.width / 2,
+      y: pointer.y - node.height / 2,
+    });
+    if (this.creator.pendingNodes?.length) {
+      this.app.revealIfHidden(this.creator.pendingNodes);
+    }
+    this.app.triggerRender(true);
+    return true;
+  };
+
+  commitHandleDrag = () => {
+    if (!this.handleDrag) {
+      return false;
+    }
+
+    const nodes = this.creator.pendingNodes ?? [];
+    this.handleDrag = null;
+    this.creator.clear();
+
+    if (!nodes.length) {
+      this.app.triggerRender(true);
+      return true;
+    }
+
+    this.app.insertNewElements(nodes);
+    this.selectAndReveal(nodes[0]);
+    this.captureUpdate();
+    return true;
+  };
+
+  cancelHandleDrag = () => {
+    if (!this.handleDrag) {
+      return false;
+    }
+    this.handleDrag = null;
+    this.creator.clear();
+    this.app.triggerRender(true);
+    return true;
   };
 
   handleKeyEvent = (event: React.KeyboardEvent | KeyboardEvent): boolean => {
@@ -100,6 +197,11 @@ export class AppFlowchart {
     const { creator, navigator, app } = this;
 
     if (event.type === "keydown") {
+      if (event.key === KEYS.ESCAPE && this.handleDrag) {
+        this.cancelHandleDrag();
+        return { type: "canceled" };
+      }
+
       if (event.key === KEYS.ESCAPE && creator.isCreatingChart) {
         creator.clear();
         return { type: "canceled" };
@@ -193,6 +295,21 @@ export class AppFlowchart {
         return "left";
       default:
         return "right";
+    }
+  }
+
+  static getLinkDirectionFromTransformHandle(
+    handle: "n" | "e" | "s" | "w",
+  ): LinkDirection {
+    switch (handle) {
+      case "n":
+        return "up";
+      case "e":
+        return "right";
+      case "s":
+        return "down";
+      case "w":
+        return "left";
     }
   }
 }
