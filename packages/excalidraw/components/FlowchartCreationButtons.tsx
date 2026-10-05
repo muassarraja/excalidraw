@@ -81,10 +81,12 @@ const directionLabels: Record<LinkDirection, string> = {
 export const FlowchartCreationButtons = ({
   element,
   elementsMap,
+  hideBottomButton = false,
   onCreateNode,
 }: {
   element: NonDeletedExcalidrawElement;
   elementsMap: ElementsMap;
+  hideBottomButton?: boolean;
   onCreateNode(direction: LinkDirection): void;
 }) => {
   const appState = useExcalidrawAppState();
@@ -102,10 +104,13 @@ export const FlowchartCreationButtons = ({
   }
 
   const bounds = getViewportBounds(element, appState, elementsMap);
+  const directions: LinkDirection[] = hideBottomButton
+    ? ["up", "right", "left"]
+    : ["up", "right", "down", "left"];
 
   return (
     <div className="flowchart-creation-buttons">
-      {(["up", "right", "down", "left"] as const).map((direction) => (
+      {directions.map((direction) => (
         <div
           className="flowchart-creation-buttons__button"
           key={direction}

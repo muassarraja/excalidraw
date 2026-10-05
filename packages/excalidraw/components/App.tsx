@@ -2637,6 +2637,7 @@ class App extends React.Component<AppProps, AppState> {
                               <FlowchartCreationButtons
                                 element={firstSelectedElement}
                                 elementsMap={renderableElementsMap}
+                                hideBottomButton={showShapeSwitchPanel}
                                 onCreateNode={(direction) =>
                                   this.flowchart.createNodeInDirection(
                                     firstSelectedElement,
