@@ -37,7 +37,7 @@ import {
   isBindableElement,
   isElbowArrow,
   isFrameLikeElement,
-  isFlowchartNodeElement,
+  isDirectionalFlowchartNodeElement,
   isImageElement,
   isLinearElement,
   isLineElement,
@@ -1463,8 +1463,8 @@ const renderTransformHandles = (
       ) {
         const centerX = x + width / 2;
         const centerY = y + height / 2;
-        const length = Math.max(width, height) * 0.28;
-        const direction =
+        const length = Math.max(width, height) * 0.72;
+        const [directionX, directionY] =
           key === "n"
             ? [0, -1]
             : key === "e"
@@ -1472,22 +1472,33 @@ const renderTransformHandles = (
             : key === "s"
             ? [0, 1]
             : [-1, 0];
-        const tipX = centerX + direction[0] * length;
-        const tipY = centerY + direction[1] * length;
-        const tailX = centerX - direction[0] * length;
-        const tailY = centerY - direction[1] * length;
-        const wing = length * 0.65;
+        const perpendicularX = -directionY;
+        const perpendicularY = directionX;
+        const tipX = centerX + directionX * length;
+        const tipY = centerY + directionY * length;
+        const tailX = centerX - directionX * length;
+        const tailY = centerY - directionY * length;
+        const headLength = length * 0.65;
+        const headWidth = length * 0.55;
+        const headX = tipX - directionX * headLength;
+        const headY = tipY - directionY * headLength;
+        context.lineWidth = Math.max(
+          context.lineWidth,
+          1.5 / appState.zoom.value,
+        );
+        context.lineCap = "round";
+        context.lineJoin = "round";
         context.beginPath();
         context.moveTo(tailX, tailY);
         context.lineTo(tipX, tipY);
         context.moveTo(
-          tipX - (direction[0] * wing - direction[1] * wing),
-          tipY - (direction[1] * wing + direction[0] * wing),
+          headX + perpendicularX * headWidth,
+          headY + perpendicularY * headWidth,
         );
         context.lineTo(tipX, tipY);
         context.lineTo(
-          tipX - (direction[0] * wing + direction[1] * wing),
-          tipY - (direction[1] * wing - direction[0] * wing),
+          headX - perpendicularX * headWidth,
+          headY - perpendicularY * headWidth,
         );
         context.stroke();
       }
@@ -2044,7 +2055,7 @@ const _renderInteractiveScene = ({
           appState,
           transformHandles,
           selectedElements[0].angle,
-          isFlowchartNodeElement(selectedElements[0]),
+          isDirectionalFlowchartNodeElement(selectedElements[0]),
         );
       }
 
